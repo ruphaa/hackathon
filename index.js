@@ -59,7 +59,6 @@ let ticketDetails = {
   empName : "",
   buHead : "",
   projectName : ""
-  //lateNightCabtime : ""
 }
 var cabObject = {};
 
@@ -103,13 +102,16 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
     if (message.text !== null) {
       var customText = message.text;
       let apiai = apiapp.textRequest(customText, {
-        sessionId: constants.API_AI_SESSION_ID// use any arbitrary id
+        sessionId: constants.API_AI_SESSION_ID// any arbitrary id
       });
 
       apiai.on('response', (response) => {
           if(response.result.metadata.intentName == constants.INTENT_REFUND_REQUEST){
           employeeNum = response.result.contexts[0].parameters.empId;
-
+            /**
+             * Emp Id check from database
+             * Only if employee id exists in the employee database, request for cab will be sent.
+             */
           databaseQuery.checkIfEmployeeIdValid(employeeNum)
           .then(function(isFound){
 
@@ -117,9 +119,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
               rtm.sendMessage(constants.MESSAGE_FOR_VALID_EMPLOYEE,channel);
             }
             else{
-
               rtm.sendMessage(constants.MESSAGE_FOR_INVALID_EMPLOYEE, channel);
-
             }
           }).catch(function(){
             console.log(constants.ERROR_MESSAGE);
@@ -131,7 +131,6 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
         }
 
         if(response.result.metadata.intentName == constants.INTENT_ADHOC_LOCATION){
-
           source = response.result.parameters.source;
           destination = response.result.parameters.destination;
           cabService = constants.SERVICE_ADHOC;
@@ -150,6 +149,9 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
           cabRequestTime = response.result.parameters.lateNightCabTimings;
         }
 
+        /**
+         * Late night cab request from office to home by taking default addresses from employee database
+         */
         if(response.result.metadata.intentName == constants.INTENT_LATE_NIGHT_DATE){
           databaseQuery.retrieveAddressOfTheEmployee(employeeNum)
           .then(function(address){
@@ -169,8 +171,6 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
         }
         var messageResponse = response.result.fulfillment.speech;
         rtm.sendMessage(messageResponse, channel);
-
-
       });
 
       apiai.on('error', (error) => {
@@ -179,9 +179,11 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
 
       apiai.end();
 
+      /**
+       * Ticket confirmation - final step
+       * If yes, Ticket will  be raised.
+       */
       if(message.text == constants.RESPONSE_YES){
-
-
         var fields = {
           'email': constants.TICKET_EMAIL,
           'subject': constants.TICKET_SUBJECT ,
@@ -198,7 +200,6 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
           'custom_fields[cf_project_details]':ticketDetails.projectName,
           'custom_fields[cf_bu_head]':ticketDetails.buHead,
           'custom_fields[cf_employee_name]':ticketDetails.empName
-
         };
 
         var headers = {
