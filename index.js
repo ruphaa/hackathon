@@ -213,6 +213,7 @@ rtm.on(RTM_EVENTS.MESSAGE, function(message) {
 
             if(response.status == 201){
               console.log("Location Header : "+ response.headers['location'])
+                rtm.sendMessage("Your ticket ID is #"+response.body.id,channel);
             }
             else{
               console.log("X-Request-Id :" + response.headers['x-request-id']);
